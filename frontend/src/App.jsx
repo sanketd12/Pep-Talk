@@ -1,47 +1,77 @@
-import { useState } from 'react';
-import { Box, VStack, Input, Button } from '@chakra-ui/react';
-import { ChatMessage } from './components/ChatMessage';
-import { sendMessage } from './services/api';
+// frontend/src/App.jsx
+import { useState } from 'react'
+import { sendMessage } from './services/api'
 
 function App() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([{
+    text: "¡Hola! I am Pep Guardiola. Let's discuss football tactics and strategy. What would you like to know?",
+    isUser: false
+  }]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
+    setIsLoading(true);
     setMessages(prev => [...prev, { text: input, isUser: true }]);
-    setInput('');
-
+    
     try {
       const response = await sendMessage(input);
-      setMessages(prev => [...prev, { text: response.answer, isUser: false }]);
+      setMessages(prev => [...prev, { 
+        text: response.answer, 
+        isUser: false 
+      }]);
     } catch (error) {
       console.error('Error:', error);
+      setMessages(prev => [...prev, { 
+        text: "Sorry, I'm having trouble responding right now.", 
+        isUser: false 
+      }]);
+    } finally {
+      setIsLoading(false);
+      setInput('');
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
   return (
-    <Box maxW="800px" mx="auto" p={4}>
-      <VStack spacing={4} h="80vh">
-        <Box flex={1} w="100%" overflowY="auto">
-          {messages.map((msg, i) => (
-            <ChatMessage key={i} message={msg.text} isUser={msg.isUser} />
-          ))}
-        </Box>
-        <Box w="100%">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Pep about tactics..."
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-          />
-          <Button onClick={handleSend} ml={2}>
-            Send
-          </Button>
-        </Box>
-      </VStack>
-    </Box>
+    <div className="chat-container">
+      <div className="messages">
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            className={`message ${msg.isUser ? 'user-message' : 'bot-message'}`}
+          >
+            {msg.text}
+          </div>
+        ))}
+      </div>
+      <div className="input-container">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Ask about tactics..."
+          className="input-field"
+          disabled={isLoading}
+        />
+        <button
+          onClick={handleSend}
+          disabled={isLoading || !input.trim()}
+          className="send-button"
+        >
+          {isLoading ? 'Sending...' : 'Send'}
+        </button>
+      </div>
+    </div>
   );
 }
 

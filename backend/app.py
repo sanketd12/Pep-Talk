@@ -1,4 +1,4 @@
-# app.py
+# backend/app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from src.doc_processing import DocumentProcessor
@@ -8,12 +8,19 @@ import os
 from dotenv import load_dotenv
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:5173"],
+        "methods": ["GET", "POST"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
+# Load environment variables
 load_dotenv()
 
+# Initialize chatbot
 try:
-    # Initialize chatbot
     print("Initializing document processor...")
     processor = DocumentProcessor("data/soccer_tactics")
     
@@ -31,8 +38,13 @@ except Exception as e:
     print(f"Error during initialization: {str(e)}")
     raise
 
-@app.route('/api/chat', methods=['POST'])
+@app.route('/', methods=['GET', 'POST'])
 def chat():
+    if request.method == 'GET':
+        return jsonify({
+            "answer": "¡Hola! I am Pep Guardiola. Let's discuss football tactics and strategy. What would you like to know?"
+        })
+    
     try:
         data = request.json
         if not data or 'message' not in data:
@@ -44,10 +56,6 @@ def chat():
     except Exception as e:
         print(f"Error processing chat: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({"status": "healthy"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
